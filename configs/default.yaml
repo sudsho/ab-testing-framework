@@ -1,0 +1,31 @@
+# default knobs for the toolkit. override in code if needed.
+
+frequentist:
+  alpha: 0.05
+  alternative: two-sided   # one-sided | two-sided
+  continuity_correction: true
+  ci_method: wilson        # wilson | normal
+
+bayesian:
+  beta_prior_alpha: 1.0
+  beta_prior_beta: 1.0
+  num_samples: 50000
+  pymc_draws: 2000
+  pymc_tune: 1000
+  pymc_chains: 2
+
+power:
+  alpha: 0.05
+  power: 0.8
+  mde: 0.02                # min detectable effect (relative for proportions)
+  baseline_rate: 0.10
+
+sequential:
+  enable_msprt: false
+  tau: 1.0                 # variance of the rolling normal prior on effect
+
+ui:
+  default_alpha: 0.05
+  default_power: 0.8
+  variant_col: variant
+  metric_col: converted
