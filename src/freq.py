@@ -103,3 +103,35 @@ def welch_ttest(values_a, values_b, alternative="two-sided"):
         ci_high=None,
         method="welch t",
     )
+
+
+def chi_square_test(table):
+    """Pearson chi-square test of independence.
+
+    ``table`` is a 2D list/array of counts, e.g. [[a_succ, a_fail], [b_succ, b_fail]]
+    for a 2x2 case, or larger if more than two variants.  Returns a TestResult
+    with ``lift=None`` since lift isn't meaningful past 2x2.
+    """
+    arr = np.asarray(table, dtype=float)
+    if arr.ndim != 2 or arr.shape[0] < 2 or arr.shape[1] < 2:
+        raise ValueError("contingency table must be 2D with at least 2x2")
+    if (arr < 0).any():
+        raise ValueError("counts cannot be negative")
+
+    chi2, p, dof, _ = stats.chi2_contingency(arr, correction=False)
+
+    lift = None
+    if arr.shape == (2, 2):
+        n_a = arr[0].sum()
+        n_b = arr[1].sum()
+        if n_a > 0 and n_b > 0:
+            lift = (arr[1, 0] / n_b) - (arr[0, 0] / n_a)
+
+    return TestResult(
+        statistic=chi2,
+        p_value=p,
+        lift=lift,
+        ci_low=None,
+        ci_high=None,
+        method="chi-square (df=%d)" % dof,
+    )
