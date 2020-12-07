@@ -18,11 +18,12 @@ TestResult = namedtuple(
 )
 
 
-def two_proportion_ztest(success_a, n_a, success_b, n_b, alternative="two-sided"):
+def two_proportion_ztest(success_a, n_a, success_b, n_b, alpha=0.05, alternative="two-sided"):
     """Pooled two-proportion z-test.
 
-    Returns TestResult.  ``success_a`` is the control side, ``success_b`` is the
-    treatment side. ``alternative`` is one of {"two-sided", "larger", "smaller"}.
+    Returns TestResult including a Wald CI on the difference (p_b - p_a).
+    ``success_a`` is the control side, ``success_b`` is the treatment side.
+    ``alternative`` is one of {"two-sided", "larger", "smaller"}.
     """
     if n_a <= 0 or n_b <= 0:
         raise ValueError("sample sizes must be positive")
@@ -31,12 +32,11 @@ def two_proportion_ztest(success_a, n_a, success_b, n_b, alternative="two-sided"
     p_b = success_b / n_b
     p_pool = (success_a + success_b) / (n_a + n_b)
 
-    se = math.sqrt(p_pool * (1.0 - p_pool) * (1.0 / n_a + 1.0 / n_b))
-    if se == 0.0:
-        # both sides identical, no signal
+    se_pool = math.sqrt(p_pool * (1.0 - p_pool) * (1.0 / n_a + 1.0 / n_b))
+    if se_pool == 0.0:
         z = 0.0
     else:
-        z = (p_b - p_a) / se
+        z = (p_b - p_a) / se_pool
 
     if alternative == "two-sided":
         p = 2.0 * (1.0 - stats.norm.cdf(abs(z)))
@@ -47,18 +47,22 @@ def two_proportion_ztest(success_a, n_a, success_b, n_b, alternative="two-sided"
     else:
         raise ValueError("unknown alternative: %s" % alternative)
 
-    lift = p_b - p_a
+    # CI on the unpooled difference uses the unpooled SE
+    se_diff = math.sqrt(p_a * (1 - p_a) / n_a + p_b * (1 - p_b) / n_b)
+    z_crit = stats.norm.ppf(1.0 - alpha / 2.0)
+    diff = p_b - p_a
+
     return TestResult(
         statistic=z,
         p_value=p,
-        lift=lift,
-        ci_low=None,   # filled in later
-        ci_high=None,
+        lift=diff,
+        ci_low=diff - z_crit * se_diff,
+        ci_high=diff + z_crit * se_diff,
         method="two-proportion z",
     )
 
 
-def welch_ttest(values_a, values_b, alternative="two-sided"):
+def welch_ttest(values_a, values_b, alpha=0.05, alternative="two-sided"):
     """Welch's t-test (unequal variances) for continuous metrics.
 
     Useful for revenue per user, session duration, etc., where the per-arm
@@ -95,12 +99,14 @@ def welch_ttest(values_a, values_b, alternative="two-sided"):
     else:
         raise ValueError("unknown alternative: %s" % alternative)
 
+    t_crit = stats.t.ppf(1.0 - alpha / 2.0, df)
+    diff = mean_b - mean_a
     return TestResult(
         statistic=t,
         p_value=p,
-        lift=mean_b - mean_a,
-        ci_low=None,
-        ci_high=None,
+        lift=diff,
+        ci_low=diff - t_crit * se,
+        ci_high=diff + t_crit * se,
         method="welch t",
     )
 
