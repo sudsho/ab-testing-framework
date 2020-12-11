@@ -58,3 +58,50 @@ def expected_loss(succ_a, n_a, succ_b, n_b,
     loss_choose_a = np.maximum(b_samples - a_samples, 0.0).mean()
     loss_choose_b = np.maximum(a_samples - b_samples, 0.0).mean()
     return float(loss_choose_a), float(loss_choose_b)
+
+
+def normal_normal_model(values_a, values_b, draws=2000, tune=1000, chains=2, seed=42):
+    """pymc3 model for two-arm continuous metric (e.g. revenue per user).
+
+    Uses weakly-informative priors centred on the pooled mean.  Returns the
+    InferenceData object plus a summary dict with mean, 95% HDI, and
+    P(mu_b > mu_a).
+
+    The import of pymc3 is local because it is a heavy dependency and
+    we don't want to pay the cost on every freq.py import.
+    """
+    import pymc3 as pm
+    import arviz as az
+
+    a = np.asarray(values_a, dtype=float)
+    b = np.asarray(values_b, dtype=float)
+    pooled_mean = np.concatenate([a, b]).mean()
+    pooled_sd = np.concatenate([a, b]).std(ddof=1)
+
+    with pm.Model() as model:
+        mu_a = pm.Normal("mu_a", mu=pooled_mean, sigma=pooled_sd * 5)
+        mu_b = pm.Normal("mu_b", mu=pooled_mean, sigma=pooled_sd * 5)
+        sigma_a = pm.HalfNormal("sigma_a", sigma=pooled_sd * 2)
+        sigma_b = pm.HalfNormal("sigma_b", sigma=pooled_sd * 2)
+        pm.Normal("obs_a", mu=mu_a, sigma=sigma_a, observed=a)
+        pm.Normal("obs_b", mu=mu_b, sigma=sigma_b, observed=b)
+        pm.Deterministic("diff", mu_b - mu_a)
+
+        trace = pm.sample(
+            draws=draws,
+            tune=tune,
+            chains=chains,
+            random_seed=seed,
+            return_inferencedata=True,
+            progressbar=False,
+        )
+
+    diff_samples = trace.posterior["diff"].values.flatten()
+    hdi = az.hdi(diff_samples, hdi_prob=0.95)
+    summary = {
+        "mean_diff": float(diff_samples.mean()),
+        "hdi_low": float(hdi[0]),
+        "hdi_high": float(hdi[1]),
+        "prob_b_beats_a": float((diff_samples > 0).mean()),
+    }
+    return trace, summary
