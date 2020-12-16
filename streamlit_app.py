@@ -10,6 +10,12 @@ import pandas as pd
 import streamlit as st
 
 from src.freq import two_proportion_ztest, welch_ttest, chi_square_test
+from src.bayes import (
+    sample_posterior,
+    prob_b_beats_a,
+    credible_interval,
+    expected_loss,
+)
 
 
 st.set_page_config(page_title="A/B testing toolkit", layout="wide")
@@ -62,7 +68,35 @@ if section == "Frequentist":
 
 elif section == "Bayesian":
     st.header("Bayesian inference")
-    st.write("Coming soon.")
+    df = _load_csv()
+    if df is not None:
+        cols = list(df.columns)
+        variant_col = st.selectbox("variant column", cols, index=0, key="b_var")
+        metric_col = st.selectbox("metric column", cols,
+                                  index=min(1, len(cols)-1), key="b_met")
+        prior_alpha = st.number_input("prior alpha", value=1.0, min_value=0.01)
+        prior_beta = st.number_input("prior beta", value=1.0, min_value=0.01)
+
+        variants = df[variant_col].unique().tolist()
+        if len(variants) != 2:
+            st.error("Bayesian tab needs exactly 2 variants for now.")
+        else:
+            arm_a = df[df[variant_col] == variants[0]][metric_col]
+            arm_b = df[df[variant_col] == variants[1]][metric_col]
+            sa, na = int(arm_a.sum()), len(arm_a)
+            sb, nb = int(arm_b.sum()), len(arm_b)
+
+            prior = (prior_alpha, prior_beta)
+            p_b_beats_a = prob_b_beats_a(sa, na, sb, nb, prior=prior, seed=0)
+            ci_a = credible_interval(sa, na, prior=prior)
+            ci_b = credible_interval(sb, nb, prior=prior)
+            loss_a, loss_b = expected_loss(sa, na, sb, nb, prior=prior, seed=0)
+
+            st.metric("P(B > A)", f"{p_b_beats_a:.3f}")
+            st.write(f"95% credible interval, A: [{ci_a[0]:.4f}, {ci_a[1]:.4f}]")
+            st.write(f"95% credible interval, B: [{ci_b[0]:.4f}, {ci_b[1]:.4f}]")
+            st.write(f"Expected loss choosing A: {loss_a:.5f}")
+            st.write(f"Expected loss choosing B: {loss_b:.5f}")
 else:
     st.header("Power calculator")
     st.write("Coming soon.")
