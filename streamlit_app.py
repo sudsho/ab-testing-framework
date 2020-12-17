@@ -16,6 +16,11 @@ from src.bayes import (
     credible_interval,
     expected_loss,
 )
+from src.power import (
+    proportion_sample_size,
+    continuous_sample_size,
+    power_for_proportion,
+)
 
 
 st.set_page_config(page_title="A/B testing toolkit", layout="wide")
@@ -99,4 +104,25 @@ elif section == "Bayesian":
             st.write(f"Expected loss choosing B: {loss_b:.5f}")
 else:
     st.header("Power calculator")
-    st.write("Coming soon.")
+    metric_kind = st.radio("metric type", ["proportion", "continuous"])
+    alpha = st.number_input("alpha", min_value=0.001, max_value=0.5,
+                            value=0.05, step=0.01, key="pc_alpha")
+    power = st.number_input("power (1 - beta)", min_value=0.5, max_value=0.999,
+                            value=0.8, step=0.05, key="pc_power")
+    if metric_kind == "proportion":
+        baseline = st.number_input("baseline rate", min_value=0.001,
+                                   max_value=0.999, value=0.10, step=0.01)
+        mde = st.number_input("MDE (absolute)", min_value=0.0001,
+                              max_value=0.5, value=0.02, step=0.005)
+        if st.button("compute"):
+            n = proportion_sample_size(baseline, mde, power=power, alpha=alpha)
+            st.success(f"Per-arm sample size: {n}")
+            achieved = power_for_proportion(baseline, mde, n, alpha=alpha)
+            st.write(f"(achieved power at this n: {achieved:.3f})")
+    else:
+        sd = st.number_input("metric std dev", min_value=0.0001, value=8.0)
+        mde = st.number_input("MDE (absolute, same units)", min_value=0.0001,
+                              value=0.5, key="pc_mde_cont")
+        if st.button("compute "):
+            n = continuous_sample_size(mde, sd, power=power, alpha=alpha)
+            st.success(f"Per-arm sample size: {n}")
