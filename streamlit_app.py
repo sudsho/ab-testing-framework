@@ -99,11 +99,18 @@ elif section == "Bayesian":
             ci_b = credible_interval(sb, nb, prior=prior)
             loss_a, loss_b = expected_loss(sa, na, sb, nb, prior=prior, seed=0)
 
-            st.metric("P(B > A)", f"{p_b_beats_a:.3f}")
-            st.write(f"95% credible interval, A: [{ci_a[0]:.4f}, {ci_a[1]:.4f}]")
-            st.write(f"95% credible interval, B: [{ci_b[0]:.4f}, {ci_b[1]:.4f}]")
-            st.write(f"Expected loss choosing A: {loss_a:.5f}")
-            st.write(f"Expected loss choosing B: {loss_b:.5f}")
+            col1, col2, col3 = st.beta_columns(3)
+            col1.metric("Chance to beat control", f"{p_b_beats_a*100:.1f}%")
+            col2.metric("Expected loss (B)", f"{loss_b:.5f}")
+            col3.metric("Expected loss (A)", f"{loss_a:.5f}")
+            st.write(f"95% credible interval, {variants[0]}: [{ci_a[0]:.4f}, {ci_a[1]:.4f}]")
+            st.write(f"95% credible interval, {variants[1]}: [{ci_b[0]:.4f}, {ci_b[1]:.4f}]")
+            if p_b_beats_a > 0.95:
+                st.success("Strong evidence B beats A.")
+            elif p_b_beats_a < 0.05:
+                st.warning("Strong evidence A beats B.")
+            else:
+                st.info("Inconclusive yet; collect more data.")
 
             # Posterior overlay chart
             samp_a = sample_posterior(sa, na, prior=prior, n_samples=20000, seed=0)
