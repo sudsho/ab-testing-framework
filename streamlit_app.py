@@ -6,7 +6,9 @@ Run with:  streamlit run streamlit_app.py
 """
 import io
 
+import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 from src.freq import two_proportion_ztest, welch_ttest, chi_square_test
@@ -102,6 +104,18 @@ elif section == "Bayesian":
             st.write(f"95% credible interval, B: [{ci_b[0]:.4f}, {ci_b[1]:.4f}]")
             st.write(f"Expected loss choosing A: {loss_a:.5f}")
             st.write(f"Expected loss choosing B: {loss_b:.5f}")
+
+            # Posterior overlay chart
+            samp_a = sample_posterior(sa, na, prior=prior, n_samples=20000, seed=0)
+            samp_b = sample_posterior(sb, nb, prior=prior, n_samples=20000, seed=1)
+            fig = go.Figure()
+            fig.add_trace(go.Histogram(x=samp_a, name=str(variants[0]),
+                                       opacity=0.55, nbinsx=80, histnorm="probability density"))
+            fig.add_trace(go.Histogram(x=samp_b, name=str(variants[1]),
+                                       opacity=0.55, nbinsx=80, histnorm="probability density"))
+            fig.update_layout(barmode="overlay", title="Posterior densities",
+                              xaxis_title="rate", yaxis_title="density")
+            st.plotly_chart(fig, use_container_width=True)
 else:
     st.header("Power calculator")
     metric_kind = st.radio("metric type", ["proportion", "continuous"])
