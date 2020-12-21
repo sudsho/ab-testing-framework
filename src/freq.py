@@ -18,12 +18,16 @@ TestResult = namedtuple(
 )
 
 
-def two_proportion_ztest(success_a, n_a, success_b, n_b, alpha=0.05, alternative="two-sided"):
+def two_proportion_ztest(success_a, n_a, success_b, n_b, alpha=0.05,
+                         alternative="two-sided", continuity_correction=False):
     """Pooled two-proportion z-test.
 
     Returns TestResult including a Wald CI on the difference (p_b - p_a).
     ``success_a`` is the control side, ``success_b`` is the treatment side.
     ``alternative`` is one of {"two-sided", "larger", "smaller"}.
+
+    If ``continuity_correction`` is True, applies a Yates-style 0.5/n correction.
+    Useful when sample sizes are small.
     """
     if n_a <= 0 or n_b <= 0:
         raise ValueError("sample sizes must be positive")
@@ -33,10 +37,18 @@ def two_proportion_ztest(success_a, n_a, success_b, n_b, alpha=0.05, alternative
     p_pool = (success_a + success_b) / (n_a + n_b)
 
     se_pool = math.sqrt(p_pool * (1.0 - p_pool) * (1.0 / n_a + 1.0 / n_b))
+    diff_observed = p_b - p_a
+    if continuity_correction and se_pool > 0:
+        cc = 0.5 * (1.0 / n_a + 1.0 / n_b)
+        # shrink the magnitude of the observed diff by cc, but never past zero
+        diff_for_z = math.copysign(max(abs(diff_observed) - cc, 0.0), diff_observed)
+    else:
+        diff_for_z = diff_observed
+
     if se_pool == 0.0:
         z = 0.0
     else:
-        z = (p_b - p_a) / se_pool
+        z = diff_for_z / se_pool
 
     if alternative == "two-sided":
         p = 2.0 * (1.0 - stats.norm.cdf(abs(z)))
