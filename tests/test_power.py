@@ -23,7 +23,14 @@ def test_proportion_sample_size_higher_power_needs_more():
 def test_continuous_sample_size_units():
     # MDE of 1, sd of 5, alpha=0.05, power=0.8 ~ 393 per arm
     n = continuous_sample_size(mde=1.0, sd=5.0, power=0.8, alpha=0.05)
-    assert 350 < n < 500
+    assert 380 < n < 410
+
+
+def test_continuous_invalid():
+    with pytest.raises(ValueError):
+        continuous_sample_size(mde=0.5, sd=0.0)
+    with pytest.raises(ValueError):
+        continuous_sample_size(mde=0.0, sd=1.0)
 
 
 def test_invalid_baseline():
