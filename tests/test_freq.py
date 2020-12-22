@@ -19,12 +19,21 @@ def test_ztest_clear_lift():
 
 
 def test_ttest_basic():
-    rng = np.random.RandomState(0)
-    a = rng.normal(0, 1, size=500)
-    b = rng.normal(0.3, 1, size=500)
+    # bigger samples + a fixed seed; the older version was flaky on smaller n
+    rng = np.random.RandomState(123)
+    a = rng.normal(0, 1, size=2000)
+    b = rng.normal(0.25, 1, size=2000)
     res = welch_ttest(a, b)
     assert res.p_value < 0.001
     assert res.lift > 0
+
+
+def test_ttest_no_signal():
+    rng = np.random.RandomState(123)
+    a = rng.normal(0, 1, size=2000)
+    b = rng.normal(0, 1, size=2000)
+    res = welch_ttest(a, b)
+    assert res.p_value > 0.05
 
 
 def test_chi_square_2x2():
