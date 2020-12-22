@@ -38,7 +38,7 @@ def prob_b_beats_a(succ_a, n_a, succ_b, n_b,
     is plenty fast for our use and easier to read.
     """
     a_samples = sample_posterior(succ_a, n_a, prior, n_samples, seed)
-    seed_b = None if seed is None else seed + 1
+    seed_b = None if seed is None else int(seed) + 1
     b_samples = sample_posterior(succ_b, n_b, prior, n_samples, seed_b)
     return float((b_samples > a_samples).mean())
 
@@ -59,7 +59,7 @@ def expected_loss(succ_a, n_a, succ_b, n_b,
     a threshold (say 0.0001) you can call B the winner with low regret.
     """
     a_samples = sample_posterior(succ_a, n_a, prior, n_samples, seed)
-    seed_b = None if seed is None else seed + 1
+    seed_b = None if seed is None else int(seed) + 1
     b_samples = sample_posterior(succ_b, n_b, prior, n_samples, seed_b)
     loss_choose_a = np.maximum(b_samples - a_samples, 0.0).mean()
     loss_choose_b = np.maximum(a_samples - b_samples, 0.0).mean()

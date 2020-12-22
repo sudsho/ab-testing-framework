@@ -32,9 +32,9 @@ def test_prob_b_beats_a_with_lift():
 
 
 def test_prob_b_beats_a_equal():
-    p = prob_b_beats_a(100, 1000, 100, 1000, n_samples=20000, seed=0)
-    # should hover near 0.5
-    assert 0.4 < p < 0.6
+    # bigger n + tighter band; was occasionally tripping at 0.4
+    p = prob_b_beats_a(100, 1000, 100, 1000, n_samples=80000, seed=42)
+    assert 0.45 < p < 0.55
 
 
 def test_credible_interval_bounds():
