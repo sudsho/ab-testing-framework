@@ -22,6 +22,10 @@ def proportion_sample_size(baseline_rate, mde, power=0.8, alpha=0.05,
         raise ValueError("baseline_rate must be in (0,1)")
     if mde == 0:
         raise ValueError("mde must be non-zero")
+    if not (0 < power < 1):
+        raise ValueError("power must be in (0,1)")
+    if not (0 < alpha < 1):
+        raise ValueError("alpha must be in (0,1)")
 
     p1 = baseline_rate
     p2 = baseline_rate + mde
