@@ -11,10 +11,16 @@ from scipy import stats
 
 def beta_posterior(successes, trials, prior_alpha=1.0, prior_beta=1.0):
     """Return the Beta posterior parameters (alpha, beta) given a Beta prior
-    and observed successes/trials."""
+    and observed successes/trials.
+
+    Prior parameters can be float (Jeffreys = 0.5).  We coerce to float in
+    the return so the type is stable downstream regardless of input.
+    """
     if trials < 0 or successes < 0 or successes > trials:
         raise ValueError("invalid successes/trials")
-    return prior_alpha + successes, prior_beta + (trials - successes)
+    if prior_alpha <= 0 or prior_beta <= 0:
+        raise ValueError("prior_alpha, prior_beta must be > 0")
+    return float(prior_alpha + successes), float(prior_beta + (trials - successes))
 
 
 def sample_posterior(successes, trials, prior=(1.0, 1.0), n_samples=50000, seed=None):

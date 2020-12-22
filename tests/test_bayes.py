@@ -11,8 +11,14 @@ from src.bayes import (
 
 def test_beta_posterior_basic():
     a, b = beta_posterior(10, 100, prior_alpha=1.0, prior_beta=1.0)
-    assert a == 11
-    assert b == 91
+    assert a == pytest.approx(11.0)
+    assert b == pytest.approx(91.0)
+
+
+def test_beta_posterior_jeffreys():
+    a, b = beta_posterior(10, 100, prior_alpha=0.5, prior_beta=0.5)
+    assert a == pytest.approx(10.5)
+    assert b == pytest.approx(90.5)
 
 
 def test_beta_posterior_invalid():
