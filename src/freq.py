@@ -18,6 +18,26 @@ TestResult = namedtuple(
 )
 
 
+def _normal_pvalue(z, alternative):
+    if alternative == "two-sided":
+        return 2.0 * (1.0 - stats.norm.cdf(abs(z)))
+    if alternative == "larger":
+        return 1.0 - stats.norm.cdf(z)
+    if alternative == "smaller":
+        return stats.norm.cdf(z)
+    raise ValueError("unknown alternative: %s" % alternative)
+
+
+def _t_pvalue(t, df, alternative):
+    if alternative == "two-sided":
+        return 2.0 * (1.0 - stats.t.cdf(abs(t), df))
+    if alternative == "larger":
+        return 1.0 - stats.t.cdf(t, df)
+    if alternative == "smaller":
+        return stats.t.cdf(t, df)
+    raise ValueError("unknown alternative: %s" % alternative)
+
+
 def two_proportion_ztest(success_a, n_a, success_b, n_b, alpha=0.05,
                          alternative="two-sided", continuity_correction=False):
     """Pooled two-proportion z-test.
@@ -50,14 +70,7 @@ def two_proportion_ztest(success_a, n_a, success_b, n_b, alpha=0.05,
     else:
         z = diff_for_z / se_pool
 
-    if alternative == "two-sided":
-        p = 2.0 * (1.0 - stats.norm.cdf(abs(z)))
-    elif alternative == "larger":
-        p = 1.0 - stats.norm.cdf(z)
-    elif alternative == "smaller":
-        p = stats.norm.cdf(z)
-    else:
-        raise ValueError("unknown alternative: %s" % alternative)
+    p = _normal_pvalue(z, alternative)
 
     # CI on the unpooled difference uses the unpooled SE
     se_diff = math.sqrt(p_a * (1 - p_a) / n_a + p_b * (1 - p_b) / n_b)
@@ -102,14 +115,7 @@ def welch_ttest(values_a, values_b, alpha=0.05, alternative="two-sided"):
               (var_b ** 2) / ((b.size ** 2) * (b.size - 1))
         df = num / den if den > 0 else (a.size + b.size - 2)
 
-    if alternative == "two-sided":
-        p = 2.0 * (1.0 - stats.t.cdf(abs(t), df))
-    elif alternative == "larger":
-        p = 1.0 - stats.t.cdf(t, df)
-    elif alternative == "smaller":
-        p = stats.t.cdf(t, df)
-    else:
-        raise ValueError("unknown alternative: %s" % alternative)
+    p = _t_pvalue(t, df, alternative)
 
     t_crit = stats.t.ppf(1.0 - alpha / 2.0, df)
     diff = mean_b - mean_a
