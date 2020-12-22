@@ -40,3 +40,27 @@ def test_chi_square_2x2():
     res = chi_square_test([[50, 950], [100, 900]])
     assert res.p_value < 0.001
     assert res.lift is not None
+
+
+def test_ztest_zero_conversions_both_arms():
+    # 0 conversions in both arms = no signal, p ~ 1
+    res = two_proportion_ztest(0, 1000, 0, 1000)
+    assert res.statistic == 0.0
+    assert res.p_value > 0.99
+
+
+def test_ztest_zero_conversions_one_arm():
+    # 0 in control, some in treatment: should still produce a finite p
+    res = two_proportion_ztest(0, 1000, 30, 1000)
+    assert math.isfinite(res.p_value)
+    assert res.p_value < 0.001
+
+
+def test_ztest_invalid_n():
+    with pytest.raises(ValueError):
+        two_proportion_ztest(0, 0, 5, 100)
+
+
+def test_chi_square_invalid():
+    with pytest.raises(ValueError):
+        chi_square_test([[1, 2, 3]])  # 1xk is not 2D-2x2 minimum
