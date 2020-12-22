@@ -45,10 +45,15 @@ def msprt_pvalue(succ_a, n_a, succ_b, n_b, tau=1.0):
     # mixture likelihood ratio (Robbins 1970 form, simplified)
     factor = math.sqrt(1.0 + n_eff * tau)
     exponent = (n_eff * tau * z * z) / (2.0 * (1.0 + n_eff * tau))
-    lr = math.exp(exponent) / factor
+    # guard against overflow on huge z
+    try:
+        lr = math.exp(exponent) / factor
+    except OverflowError:
+        return 0.0
 
-    p = min(1.0, 1.0 / lr)
-    return p
+    if lr <= 0.0:
+        return 1.0
+    return min(1.0, 1.0 / lr)
 
 
 def reject_at_each_look(succ_a_seq, n_a_seq, succ_b_seq, n_b_seq, alpha=0.05, tau=1.0):
