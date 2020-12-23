@@ -46,3 +46,23 @@ def test_expected_loss_signs():
     loss_a, loss_b = expected_loss(50, 1000, 100, 1000, n_samples=20000, seed=0)
     # if B is clearly winning, the loss of choosing A is large, of choosing B small
     assert loss_a > loss_b
+
+
+# pymc3 is heavy; the slow tests live here, opt-in via env var
+import os
+
+PYMC_OK = os.getenv("RUN_PYMC_TESTS") == "1"
+
+
+@pytest.mark.skipif(not PYMC_OK, reason="set RUN_PYMC_TESTS=1 to enable")
+def test_normal_normal_model_smoke():
+    import numpy as np
+
+    from src.bayes import normal_normal_model
+
+    rng = np.random.RandomState(0)
+    a = rng.normal(10, 4, size=400)
+    b = rng.normal(11, 4, size=400)
+    _, summary = normal_normal_model(a, b, draws=300, tune=300, chains=1, seed=0)
+    assert summary["mean_diff"] > 0.3
+    assert summary["prob_b_beats_a"] > 0.7
