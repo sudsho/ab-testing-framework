@@ -41,7 +41,14 @@ def _load_csv():
     if uploaded is None:
         st.info("Upload a CSV with at least a variant column and a metric column.")
         return None
-    df = pd.read_csv(uploaded)
+    try:
+        df = pd.read_csv(uploaded)
+    except Exception as e:
+        st.error(f"Could not parse CSV: {e}")
+        return None
+    if df.empty:
+        st.error("CSV is empty.")
+        return None
     st.write("Preview:")
     st.dataframe(df.head())
     return df
