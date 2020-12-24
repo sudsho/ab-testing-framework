@@ -54,31 +54,40 @@ def _load_csv():
     return df
 
 
+def _split_arms(df, variant_col, metric_col):
+    variants = df[variant_col].unique().tolist()
+    if len(variants) != 2:
+        st.error("This tab needs exactly 2 variants for now.")
+        return None
+    arm_a = df[df[variant_col] == variants[0]][metric_col]
+    arm_b = df[df[variant_col] == variants[1]][metric_col]
+    return variants, arm_a, arm_b
+
+
+def _render_frequentist(df):
+    cols = list(df.columns)
+    variant_col = st.selectbox("variant column", cols, index=0)
+    metric_col = st.selectbox("metric column", cols, index=min(1, len(cols)-1))
+    metric_kind = st.radio("metric type", ["binary (0/1)", "continuous"])
+    alpha = st.number_input("alpha", min_value=0.001, max_value=0.5,
+                            value=0.05, step=0.01)
+    arms = _split_arms(df, variant_col, metric_col)
+    if arms is None:
+        return
+    _, arm_a, arm_b = arms
+    if metric_kind.startswith("binary"):
+        res = two_proportion_ztest(int(arm_a.sum()), len(arm_a),
+                                   int(arm_b.sum()), len(arm_b), alpha=alpha)
+    else:
+        res = welch_ttest(arm_a.values, arm_b.values, alpha=alpha)
+    st.write(res._asdict())
+
+
 if section == "Frequentist":
     st.header("Frequentist tests")
     df = _load_csv()
     if df is not None:
-        cols = list(df.columns)
-        variant_col = st.selectbox("variant column", cols, index=0)
-        metric_col = st.selectbox("metric column", cols, index=min(1, len(cols)-1))
-        metric_kind = st.radio("metric type", ["binary (0/1)", "continuous"])
-        alpha = st.number_input("alpha", min_value=0.001, max_value=0.5, value=0.05, step=0.01)
-
-        variants = df[variant_col].unique().tolist()
-        if len(variants) != 2:
-            st.error("Frequentist tab needs exactly 2 variants for now.")
-        else:
-            arm_a = df[df[variant_col] == variants[0]][metric_col]
-            arm_b = df[df[variant_col] == variants[1]][metric_col]
-            if metric_kind.startswith("binary"):
-                res = two_proportion_ztest(
-                    int(arm_a.sum()), len(arm_a),
-                    int(arm_b.sum()), len(arm_b),
-                    alpha=alpha,
-                )
-            else:
-                res = welch_ttest(arm_a.values, arm_b.values, alpha=alpha)
-            st.write(res._asdict())
+        _render_frequentist(df)
 
 elif section == "Bayesian":
     st.header("Bayesian inference")
