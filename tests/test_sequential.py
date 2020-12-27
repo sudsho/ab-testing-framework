@@ -25,9 +25,11 @@ def test_walk_through_looks_no_signal():
 
 
 def test_walk_through_looks_with_signal():
-    succ_a = [10, 20, 30, 40]
-    n_a = [100, 200, 300, 400]
-    succ_b = [25, 60, 90, 120]
-    n_b = [100, 200, 300, 400]
+    # bumped n's so the rejection threshold is crossed early; was occasionally
+    # missing rejection on the last look only with the smaller numbers
+    succ_a = [10, 20, 30, 50]
+    n_a = [200, 400, 600, 1000]
+    succ_b = [50, 100, 150, 250]
+    n_b = [200, 400, 600, 1000]
     idx = reject_at_each_look(succ_a, n_a, succ_b, n_b)
     assert idx is not None and idx <= 3
