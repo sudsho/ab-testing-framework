@@ -1,6 +1,10 @@
 # ab-testing-framework
 
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=sudsho/ab-testing-framework)
+
 A small toolkit for analysing A/B tests on product/data team experiments. Frequentist and Bayesian methods side-by-side, plus a Streamlit UI for the analysts who would rather not open a notebook.
+
+> **Try it live**: click the badge above to one-click-deploy the Streamlit app on Streamlit Community Cloud. No API keys needed, runs entirely on the bundled toy data.
 
 ## What's in here
 
