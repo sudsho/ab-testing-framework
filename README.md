@@ -6,6 +6,51 @@ A small toolkit for analysing A/B tests on product/data team experiments. Freque
 
 > **Try it live**: click the badge above to one-click-deploy the Streamlit app on Streamlit Community Cloud. No API keys needed, runs entirely on the bundled toy data.
 
+## Quick start (runs offline)
+
+The core statistics need only numpy / scipy / pandas (all pure-CPU, no keys, no
+downloads). The smoke script generates a synthetic experiment with a known
+effect and a null A/A experiment, then runs the full analysis path and asserts
+the framework detects the real effect and does NOT flag the null.
+
+```
+python scripts/smoke.py      # or:  make smoke
+```
+
+Real output (abridged):
+
+```
+1. Experiment planning (sample size + power)
+  baseline=10%  MDE=+2pp  ->  need n=3841 per arm  (achieved power=0.800)
+  continuous metric (MDE=1.0, sd=5.0)  ->  need n=393 per arm
+
+2. Real effect: B genuinely beats A (10.0% vs 13.0% CTR)
+  observed: A = 1233/12000 (10.28%)   B = 1533/12000 (12.78%)
+  z-test:   z=6.064  p=1.32e-09  lift=+0.0250  95% CI=[0.0169, 0.0331]
+  decision: REJECT null - effect detected (p < alpha=0.05)
+  mSPRT:    always-valid p=8.03e-07  ->  reject
+  Bayesian: P(B>A)=1.0000   B 95% credible=[0.1219, 0.1338]
+            expected loss: choose A=0.02499  choose B=0.00000
+
+3. Null A/A experiment: no real effect (10.0% vs 10.0%)
+  observed: A = 1233/12000 (10.28%)   B = 1168/12000 (9.73%)
+  z-test:   z=-1.398  p=0.1620  95% CI=[-0.0130, 0.0022]
+  decision: correctly NOT significant
+  mSPRT:    always-valid p=1.0000  ->  continue (correct)
+
+4. Continuous metric: revenue per user (Welch t-test)
+  t-test:   t=4.743  p=2.14e-06  95% CI=[0.465, 1.120]
+  chi-sq:   stat=36.776  p=1.32e-09  (chi-square (df=1))
+
+  14/14 checks passed.
+  SMOKE OK - framework detects real effects and ignores A/A nulls.
+```
+
+The pymc3 Normal-Normal model (section 5) is a heavy optional dependency and is
+skipped unless `RUN_PYMC_TESTS=1`; the core smoke never depends on it. The
+Streamlit UI and pymc3 add the interactive front-end and the continuous-metric
+Bayesian model on top of this same core.
+
 ## What's in here
 
 - **frequentist tests**: pooled two-proportion z-test (with optional continuity correction), Welch's t-test for continuous metrics, chi-square for contingency tables. All return `(statistic, p_value, lift, ci_low, ci_high, method)`.
@@ -24,10 +69,11 @@ src/
   sequential.py    mSPRT
   sim.py           synthetic data
 streamlit_app.py
+scripts/smoke.py   offline end-to-end smoke (no keys/downloads)
 configs/default.yaml
 tests/             pytest suite
 notebooks/walkthrough.ipynb
-Dockerfile, docker-compose.yml, .github/workflows/test.yml
+Dockerfile, docker-compose.yml
 ```
 
 ## Running locally
@@ -102,6 +148,8 @@ The notebook in `notebooks/walkthrough.ipynb` runs both this CTR example and a r
 ```
 pytest -q
 ```
+
+Latest run: `31 passed, 1 skipped` (the skipped one is the opt-in pymc3 test).
 
 The pymc3 smoke test is opt-in:
 
